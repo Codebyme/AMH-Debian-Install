@@ -1,0 +1,66 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: AMAPI-1.0';
+		echo 'AMH-ModuleDescription: AMAPI - AMH面板API接口模块，使用接口可管理维护AMH面板所有功能，包括PHP、MySQL、Nginx等各方面。AMAPI用途：利用接口可整合开发基于AMH面板的第三方应用程序，如开通主机、FTP等，同时可结合AMH其它功能模块使用，开通AMProxy反代网站等。';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-02-19';
+		echo 'AMH-ModuleAdmin: ./index.php?c=amapi';
+		echo 'AMH-ModuleWebSite: http://amysql.com';
+		echo 'AMH-ModuleIco: http://amysql.com/View/images/amh_module/AMAPI.gif';
+		echo 'AMH-ModuleScriptBy: Amysql';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+				exit;
+		else
+				cd /root/amh/modules/AMAPI-1.0;
+				\cp web/Controller/amapi.php /home/wwwroot/index/web/Controller/amapi.php;
+				\cp web/Model/amapis.php /home/wwwroot/index/web/Model/amapis.php;
+				\cp web/View/amapi.php /home/wwwroot/index/web/View/amapi.php;
+				amh_module_status;
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+				echo '[OK] AMAPI-1.0 Management:  http://ip:8888/index.php?c=amapi ';
+		else
+			exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+		if amh_module_status ; then
+				rm -f /home/wwwroot/index/web/Controller/amapi.php /home/wwwroot/index/web/Model/amapis.php /home/wwwroot/index/web/View/amapi.php;
+				MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+				mysql -uroot -p${MysqlPass} -B -N -e "use amh;DELETE FROM amh_config WHERE config_name LIKE 'AMAPI%'";
+				echo '[OK] AMAPI-1.0 Uninstall successful.';
+		else
+				exit;
+		fi;
+}
+
+#status
+function amh_module_status()
+{
+		if [ -f "/home/wwwroot/index/web/Controller/amapi.php" ]; then
+				echo '[OK] AMAPI-1.0 is already installed.';
+				return 0;
+		else
+				echo '[Notice] AMAPI-1.0 is not installed.';
+				return 1;
+		fi;
+}
+
+

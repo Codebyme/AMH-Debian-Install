@@ -1,0 +1,239 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: BBShijieSSH-1.0';
+		echo 'AMH-ModuleDescription: BBShijieSSH AMH面板在线添加/修改/删除爬墙专用SSH帐号。';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-10-26';
+		echo 'AMH-ModuleAdmin: ./index.php?c=bbshijiessh';
+		echo 'AMH-ModuleWebSite: http://www.baobaocool.com';
+		echo 'AMH-ModuleIco: http://amysql.com/View/images/amh_module/BBShijieSSH.gif';
+		echo 'AMH-ModuleScriptBy: BBShijie.';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+			exit;
+		else
+			#copy files
+			cd /root/amh/modules/BBShijieSSH-1.0;
+			\cp web/Controller/bbshijiessh.php  /home/wwwroot/index/web/Controller/;
+			\cp web/View/bbshijiessh.php  /home/wwwroot/index/web/View/;
+			\cp web/Model/bbssh.php  /home/wwwroot/index/web/Model/;
+
+			mkdir /usr/local/bbshijiessh;
+			\cp bbshijiessh/onlyone.pl  /usr/local/bbshijiessh/;
+
+			#shells /bin/false
+cat >> /etc/shells <<EOF
+#BBShijieSSH begin
+/bin/false
+#BBShijieSSH end
+EOF
+
+			#sshd config (600 sec) and restart sshd
+cat >> /etc/ssh/sshd_config <<EOF
+#BBShijieSSH begin
+ClientAliveInterval 1200
+ClientAliveCountMax 0
+#BBShijieSSH end
+EOF
+			/etc/init.d/sshd restart >/dev/null 2>&1;
+			/etc/init.d/ssh restart >/dev/null 2>&1;
+			
+			#crontab
+			crontab -l >/tmp/BBShijieSSH;
+cat >> /tmp/BBShijieSSH <<EOF
+* * * * * perl /usr/local/bbshijiessh/onlyone.pl
+EOF
+            crontab /tmp/BBShijieSSH;
+
+			#create mysql table
+			MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+			mysql -uroot -p${MysqlPass} < bbshijiessh/db.sql ;
+			amh_module_status;
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+			param_list=${1//,/ };
+			set -- $param_list;
+			action=$1;
+			username=$2;
+			password=$3
+
+			if [ "$action" == '' ]; then
+				echo "[Notice] BBShijieSSH management, please select: (1~4)"
+				select action in 'add' 'edit' 'del' 'exit'; do
+					break;
+				done;
+			fi;
+
+			if [ "$action" == 'add' ]; then
+				#amh module BBShijieSSH-1.0 admin add,{$username},{$password}
+				#to avoid username conflict with the users already exist in system, auto add prefix 'tizi' to username, then
+				#regex check username (1-10 lengths alphal & digit) and password (6-15 lengths alphal & digit)
+				MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+				reusername="--${username}--";
+				regexu=`expr match $reusername "^--[a-zA-Z0-9]*--$"`;
+				repassword="--${password}--";
+				regexp=`expr match $repassword "^--[a-zA-Z0-9]*--$"`;
+				
+				if [ "$regexu" -gt 4 ] && [ "$regexu" -lt 15 ] && [ "$regexp" -gt 9 ] && [ "$regexp" -lt 20 ]; then
+					#check if username existed
+					sql="select * from amh.module_bbshijiessh where username='${username}'";
+					result=`mysql -uroot -p${MysqlPass} -B -N -e "${sql}"`;
+					length=`echo $result |wc -c`;
+					if [ "$length" -le 1 ]; then
+						#adduser
+						useradd tizi$username -m -s /bin/false;
+						chown tizi$username:tizi$username /home/tizi$username;
+						echo tizi$username:$password | chpasswd;
+
+						sql="SET NAMES 'utf8';INSERT INTO amh.module_bbshijiessh(username, password) VALUES('${username}', '${password}')";
+						mysql -uroot -p${MysqlPass} -B -N -e "${sql}";
+						log_text="BBShijieSSH: 添加梯子用户成功tizi${username}";
+					else
+						#exist
+						log_text="BBShijieSSH: 用户名tizi${username}已存在，添加梯子用户失败";
+					fi;
+				else
+					log_text="BBShijieSSH: 用户名tizi${username}或密码不符合要求，添加梯子用户失败";
+				fi;
+
+				sql_log="SET NAMES 'utf8';INSERT INTO amh.amh_log(log_user_id, log_text, log_ip) VALUES('0', '${log_text}', 'localhost')";
+				mysql -uroot -p${MysqlPass} -B -N -e "${sql_log}";
+
+				exit;
+			elif [ "$action" == 'edit' ]; then
+				#check password
+				MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+				repassword="--${password}--";
+				regexp=`expr match $repassword "^--[a-zA-Z0-9]*--$"`;
+
+				if [ "$regexp" -gt 9 ] && [ "$regexp" -lt 20 ]; then
+					#check username from database
+					sql="select * from amh.module_bbshijiessh where username='${username}'";
+					result=`mysql -uroot -p${MysqlPass} -B -N -e "${sql}"`;
+					length=`echo $result |wc -c`;
+					if [ "$length" -le 1 ]; then
+						#no user
+						log_text="BBShijieSSH: 用户名tizi${username}不存在，修改梯子用户密码失败";
+					else
+						#exist, change passwd and kill user
+						ps -ef |grep "sshd: tizi${username}" |awk '{print $2}' |while read pid;do
+							kill -9 $pid;
+						done;
+						echo tizi$username:$password | chpasswd;
+
+						sql="SET NAMES 'utf8';UPDATE amh.module_bbshijiessh SET password='${password}' WHERE username='${username}'";
+						mysql -uroot -p${MysqlPass} -B -N -e "${sql}";
+						log_text="BBShijieSSH: 修改梯子用户tizi${username}密码成功";
+					fi;
+				else
+					log_text="BBShijieSSH: 密码不符合要求，修改梯子用户密码失败";
+				fi;
+				
+				sql_log="SET NAMES 'utf8';INSERT INTO amh.amh_log(log_user_id, log_text, log_ip) VALUES('0', '${log_text}', 'localhost')";
+				mysql -uroot -p${MysqlPass} -B -N -e "${sql_log}";
+
+				exit;
+			elif [ "$action" == 'del' ]; then
+				#check username
+				MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+				reusername="--${username}--";
+				regexu=`expr match $reusername "^--[a-zA-Z0-9]*--$"`;
+
+				if [ "$regexu" -gt 4 ] && [ "$regexu" -lt 15 ]; then
+					#delete user from database and system
+					sql="delete from amh.module_bbshijiessh where username='${username}'";
+					mysql -uroot -p${MysqlPass} -B -N -e "${sql}";
+
+					#kill & del user
+					ps -ef |grep "sshd: tizi${username}" |awk '{print $2}' |while read pid;do
+						kill -9 $pid;
+					done;
+
+					userdel -r tizi$username >/dev/null 2>&1;
+					log_text="BBShijieSSH: 删除梯子用户${username}";
+				else
+					log_text="BBShijieSSH: 用户名tizi${username}不符合要求，删除梯子用户失败";
+				fi;
+
+				sql_log="SET NAMES 'utf8';INSERT INTO amh.amh_log(log_user_id, log_text, log_ip) VALUES('0', '${log_text}', 'localhost')";
+				mysql -uroot -p${MysqlPass} -B -N -e "${sql_log}";
+
+				exit;
+			else
+				amh module BBShijieSSH-1.0 admin;
+				exit;
+			fi;
+		else
+				exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+                if amh_module_status ; then
+                				#delete files and folder
+                                rm -f /home/wwwroot/index/web/Controller/bbshijiessh.php /home/wwwroot/index/web/View/bbshijiessh.php /home/wwwroot/index/web/Model/bbssh.php;
+                                rm -rf /usr/local/bbshijiessh/;
+
+                                #delete /bin/false in /etc/shells
+                                sed -i "/#BBShijieSSH begin/,/#BBShijieSSH end/d" /etc/shells;
+
+                                #delete sshd_config
+                                sed -i "/#BBShijieSSH begin/,/#BBShijieSSH end/d" /etc/ssh/sshd_config;
+                                /etc/init.d/sshd restart >/dev/null 2>&1;
+                                /etc/init.d/ssh restart >/dev/null 2>&1;
+
+                                #delete crontab
+                                crontab -l >/tmp/BBShijieSSH;
+                                sed -i "/bbshijiessh/d" /tmp/BBShijieSSH;
+                                crontab /tmp/BBShijieSSH;
+
+                                #delete all user in database
+                                MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+                                sql="select * from amh.module_bbshijiessh";
+                                mysql -uroot -p${MysqlPass} -B -N -e "${sql}"  | while read result; do
+                                	set -- $result;
+                                	username=$2;
+                                	#kill & del user
+                                	ps -ef |grep "sshd: tizi${username}" |awk '{print $2}' |while read pid;do
+                                		kill -9 $pid;
+                                	done;
+                                	userdel -r tizi$username;
+
+                                done;
+
+                                #drop database table module_bbshijiessh
+                                sql="DROP TABLE amh.module_bbshijiessh";
+                                mysql -uroot -p${MysqlPass} -B -N -e "${sql}";
+
+                                echo '[OK] BBShijieSSH Uninstall successful.';
+                else
+                                exit;
+                fi;
+}
+
+#status
+function amh_module_status()
+{
+                if [ -f "/home/wwwroot/index/web/Controller/bbshijiessh.php" ]; then
+                                echo '[OK] BBShijieSSH is already installed.';
+                                return 0;
+                else
+                                echo '[Notice] BBShijieSSH is not installed.';
+                                return 1;
+                fi;
+}

@@ -1,0 +1,373 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: AMProxy-2.0';
+		echo 'AMH-ModuleDescription: AMProxy - AMH反向代理模块，2.0版本支持缓存管理功能，支持在线关键字添加、替换，支持设置不同类型文件替换、与支持添加自定义首尾html代码块等。SSH管理命令: amh module AMProxy-2.0 获取最新稳定版本与新功能支持请关注官方网站。';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-08-17';
+		echo 'AMH-ModuleAdmin: /index.php?c=amproxy';
+		echo 'AMH-ModuleWebSite: http://amysql.com';
+		echo 'AMH-ModuleIco: http://amysql.com/View/images/amh_module/AMProxy.gif';
+		echo 'AMH-ModuleScriptBy: Amysql';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+				exit;
+		else
+				#[ -d "/usr/local/nginx/conf/proxy" ] && mkdir -p /usr/local/nginx/conf/proxy_backup && \
+				#mv /usr/local/nginx/conf/proxy/* /usr/local/nginx/conf/proxy_backup/ && amh nginx reload;
+
+				for module_name in `ls /root/amh/modules/ | grep 'AMProxy' | grep -v 'AMProxy-2.0'`; do
+					#amh module $module_name uninstall force;
+					#amh module $module_name delete y;
+					rm -rf /root/amh/modules/$module_name;
+				done;
+
+				#install nginx module
+				Cpunum=`cat /proc/cpuinfo |grep 'processor'|wc -l`;
+				nginx_configure=`/usr/local/nginx/sbin/nginx -V 2> /tmp/nginx_configure && cat /tmp/nginx_configure | grep 'configure arguments' | cut -d: -f2 && rm -f /tmp/nginx_configure`;
+				new_nginx_configure=$nginx_configure;
+				if ! echo "$new_nginx_configure" | grep 'add-module=/usr/local/echo-nginx-module-0.42' > /dev/null; then 
+					new_nginx_configure="${new_nginx_configure} --add-module=/usr/local/echo-nginx-module-0.42";
+				fi;
+				if ! echo "$new_nginx_configure" | grep 'add-module=/usr/local/yaoweibin-ngx_http_substitutions_filter_module-e3291ac' > /dev/null; then 
+					new_nginx_configure="${new_nginx_configure} --add-module=/usr/local/yaoweibin-ngx_http_substitutions_filter_module-e3291ac";
+				fi;
+
+				if [ "$nginx_configure" != "$new_nginx_configure" ]; then
+					cd /usr/local/;
+					wget http://code.amysql.com/files/nginx-1.2.9.tar.gz;
+					tar -zxf nginx-1.2.9.tar.gz;
+					wget http://code.amysql.com/files/echo-nginx-module-0.42.tar.gz;
+					tar -zxf echo-nginx-module-0.42.tar.gz;
+					wget http://code.amysql.com/files/yaoweibin-ngx_http_substitutions_filter_module-0.6.2-5-ge3291ac.tar.gz;
+					tar -zxf yaoweibin-ngx_http_substitutions_filter_module-0.6.2-5-ge3291ac.tar.gz;
+
+					cd nginx-1.2.9;
+					./configure $new_nginx_configure;
+					make -j $Cpunum;
+					mv /usr/local/nginx/sbin/nginx /usr/local/nginx/sbin/nginx-old;
+					\cp -a ./objs/nginx /usr/local/nginx/sbin/;
+					kill -USR2 `cat /usr/local/nginx/logs/nginx.pid`;
+					cd /usr/local/;
+					rm -rf nginx-1.2.9 nginx-1.2.9.tar.gz /usr/local/nginx/sbin/nginx-old;
+					kill -QUIT `cat /usr/local/nginx/logs/nginx.pid.oldbin`;
+					sed -i "s|Nginx.*<br />|Nginx 1.2.9 <br />|" /home/wwwroot/index/web/View/index.php;
+				fi;
+
+				MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+				cd /root/amh/modules/AMProxy-2.0;
+				\cp amhproxy.conf /usr/local/nginx/conf;
+				\cp web/Controller/amproxy.php /home/wwwroot/index/web/Controller/amproxy.php;
+				\cp web/Model/amproxys.php /home/wwwroot/index/web/Model/amproxys.php;
+				\cp web/View/{amproxy.php,amproxy_cache.php,amproxy_cache_del.php,amproxy_cache_index.php,amproxy_category.php} /home/wwwroot/index/web/View/;
+				mkdir -p /usr/local/nginx/conf/proxy;
+				mkdir -p /usr/local/nginx/conf/proxy_stop;
+
+				#[ -d "/usr/local/nginx/conf/proxy_backup" ] && mv /usr/local/nginx/conf/proxy_backup/* /usr/local/nginx/conf/proxy/; 
+				#rm -rf /usr/local/nginx/conf/proxy_backup/;
+				sed -i "/include proxy/d" /usr/local/nginx/conf/nginx.conf;
+				sed -i "/include vhost/a\ \tinclude proxy/*.conf;"  /usr/local/nginx/conf/nginx.conf;
+				mysql -uroot -p$MysqlPass < ./amhproxy.sql && touch ./InstallComplete && amh module AMProxy-2.0 admin cache,1:2,20m,2g,12h,10d;
+
+				amh nginx reload;
+				amh_module_status;
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+				param_list=${1//,/ };
+				set -- $param_list;
+				action=$1;
+				domain=$2;
+
+				if [ "$action" == '' ]; then
+					echo "[Notice] AMProxy management, please select: (1~4)"
+					select action in 'list' 'add' 'start' 'stop' 'edit' 'del' 'start-cache' 'stop-cache' 'cache' 'cache-index' 'cache-delete'; do
+						break;
+					done;
+				fi;
+
+				if [ "$action" == 'list' ]; then
+					for line in `ls /usr/local/nginx/conf/proxy`; do
+						echo "${line%.conf} [Running]";
+					done;
+					for line in `ls /usr/local/nginx/conf/proxy_stop`; do
+						echo "${line%.conf} [Stop]";
+					done;
+					exit;
+				elif [ "$action" == 'cache' ] ; then
+					levels=$2;
+					keys_zone=$3;
+					max_size=$4;
+					valid=$5;
+					inactive=$6;
+					[ "$levels" == '' ] && read -p "[Notice] Please input levels (e.g: 1:2):" levels && [ "$levels" == '' ] && levels='1:2';
+					[ "$keys_zone" == '' ] && read -p "[Notice] Please input keys_zone (e.g: 10m):" keys_zone && [ "$keys_zone" == '' ] && keys_zone='10m';
+					[ "$max_size" == '' ] && read -p "[Notice] Please input max_size (e.g: 2g):" max_size && [ "$max_size" == '' ] && max_size='2g';
+					[ "$valid" == '' ] && read -p "[Notice] Please input valid (e.g: 12h):" valid && [ "$valid" == '' ] && valid='12h';
+					[ "$inactive" == '' ] && read -p "[Notice] Please input inactive (e.g: 10d):" inactive && [ "$inactive" == '' ] && inactive='10d';
+					sed -i "/proxy_/d" /usr/local/nginx/conf/nginx.conf;
+					sed -i "/fastcgi_intercept_errors/a\ \tproxy_cache_path \/home\/amproxy_cache levels=$levels keys_zone=amproxy:$keys_zone inactive=$inactive max_size=$max_size;" /usr/local/nginx/conf/nginx.conf;
+					sed -i "/fastcgi_intercept_errors/a\ \tproxy_temp_path \/home\/amproxy_cache_tmp;" /usr/local/nginx/conf/nginx.conf;
+					sed -i "/fastcgi_intercept_errors/a\ \tproxy_cache_key \$scheme:\/\/\$host\$request_uri;" /usr/local/nginx/conf/nginx.conf;
+					sed -i "/fastcgi_intercept_errors/a\ \tproxy_cache_valid 200 304 $valid;" /usr/local/nginx/conf/nginx.conf;
+					kill -HUP `cat /usr/local/nginx/logs/nginx.pid` && echo "[OK] AMProxy cache-param save success." && exit;
+				elif [ "$action" == 'cache-index' ] ; then
+					MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+					cmin=$2;
+					mode=$3;
+					[ "$cmin" == '' ] && read -p "[Notice] Please input cmin value(e.g: +10):" cmin && [ "$cmin" == '' ] && cmin='+10';
+					[ ! -d /home/amproxy_cache ] && echo "[Error] amproxy_cache dir not exist!" && exit 1;
+					cd /home/amproxy_cache;
+					i=0;
+					cmin=${cmin//;/} && cmin=${cmin// /};
+					rm -f ./cache-index.sql;
+					for line in `find ./ -type f -cmin $cmin`; do
+						echo $line;
+						text=`head -18 $line`;
+						key=`echo "$text" | grep 'KEY:' | awk '{print $2}'`;
+						http_s=`echo "$text" | grep 'HTTP/' | awk '{print $2}'`;
+						type=`echo "$text" | grep 'Content-Type:' | awk '{print $2}'`;
+						[ "$type" != '' ] && type=${type:0:$((${#type}-1))};
+						size=`echo "$text" | grep 'Content-Length:' | awk '{printf("%.3f", $2/1024/1024)}'`;
+						time=`stat $line | grep 'Change' | awk '{print $2" "$3}' | cut -d '.' -f 1`;
+						echo "('$line','$key','$http_s','$type','$size','$time')," >> ./cache-index.sql;
+						i=$[i+1];
+					done;
+					[ "$mode" == 'truncate' ] && mysql -uroot -p${MysqlPass} -B -N -e  "TRUNCATE TABLE amh.module_amproxy";
+					[ ! -f "./cache-index.sql" ] && echo '[OK] No data found.' && exit;
+					sed -i "1i REPLACE INTO amh.module_amproxy (amproxy_file,amproxy_key,amproxy_http_s,amproxy_type,amproxy_size,amproxy_time) VALUES " ./cache-index.sql;
+					sed -i "$ s/),/)\;/" ./cache-index.sql;
+					mysql -uroot -p$MysqlPass < ./cache-index.sql && echo "[OK] AMProxy cache-index success. ($i row)" ;
+					rm -f ./cache-index.sql;
+				elif [ "$action" == 'cache-delete' ] ; then
+					MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+					url_param=$2;
+					file_type=$3;
+					[ "$url_param" == '' ] && read -p "[Notice] Please input url-param (e.g: amysql.com/images/):" url_param
+					[ "$file_type" == '' ] && read -p "[Notice] Please input file-type (e.g: image/jpeg):" file_type
+
+					sqls="SELECT amproxy_file FROM amh.module_amproxy WHERE 1";
+					sqld="DELETE FROM amh.module_amproxy WHERE 1";
+					sql_furl=${sql_furl//;/} && sql_furl=${sql_furl// /};
+					sql_ftype=${sql_ftype//;/} && sql_ftype=${sql_ftype// /};
+					[ "$url_param" != '-all' ] && sql_furl=" AND amproxy_key LIKE '$url_param' ";
+					[ "$file_type" != '-all' ] && sql_ftype=" AND amproxy_type LIKE '$file_type' ";
+					i=0;
+					for line in `mysql -uroot -p${MysqlPass} -B -N -e "$sqls $sql_furl $sql_ftype"`; do
+						( echo "$line" | grep '\.\.' || [ "$line" == '' ] ) && echo '[Error] Error data.' && exit 1;
+						echo $line;
+						rm -f "/home/amproxy_cache/${line}" && i=$[i+1];
+					done;
+					mysql -uroot -p${MysqlPass} -B -N -e "$sqld $sql_furl $sql_ftype" && echo "[OK] AMProxy cache-delete success. ($i row)" ;
+				else
+					if [ "$action" != 'list' ] && [ "$action" != 'cache' ] ; then
+						[ "$domain" == '' ] && read -p "[Notice] please input domain(e.g amysql.com):" domain
+						[ "$domain" == '' ] && amh module AMProxy-2.0 admin $action;
+					fi;
+					domain_conf="/usr/local/nginx/conf/proxy/$domain.conf";
+					[ -f "/usr/local/nginx/conf/proxy_stop/$domain.conf" ] && domain_conf="/usr/local/nginx/conf/proxy_stop/$domain.conf";
+					
+					if [ "$action" == 'add' ]; then
+						[ -f "$domain_conf" ] && echo "[Error] $domain AMProxy is exist!" && exit 1;
+						proxy_pass=$3;
+						if [ "$proxy_pass" == '' ]; then
+							read -p "[Notice] please input proxy_pass(e.g nginx.org):" proxy_pass
+							[ "$proxy_pass" == '' ] && amh module AMProxy-2.0 admin $action;
+						fi;
+						cp /usr/local/nginx/conf/amhproxy.conf /usr/local/nginx/conf/proxy/${domain}.conf;
+						sed -i "s|www.amysql.com|$proxy_pass|" /usr/local/nginx/conf/proxy/${domain}.conf;
+						sed -i "s|amysql.com|$domain|" /usr/local/nginx/conf/proxy/${domain}.conf;
+						echo "[OK] successfully create $domain AMProxy.";
+						amh nginx reload;
+						
+					elif [ "$action" == 'edit' ]; then
+						[ ! -f "$domain_conf" ] && echo "[Error] $domain AMProxy not exist!" && exit 1;
+						ParamName=$3;
+						i=0;
+						for line in $*; do
+							i=$[$i+1];
+							[ "$i" -gt 3 ] && ParamVal="$ParamVal $line";
+						done;
+
+						AMProxy[0]='server_name|amysql.com';
+						AMProxy[1]='proxy_pass|http://nginx.org';
+						AMProxy[2]='subs_filter_types|text/html,text/css,text/xml';
+						AMProxy[3]='subs_filter|list/add,find_str,replace_str,gior/del,find_str';
+						AMProxy[4]='Referer|http://nginx.org';
+						AMProxy[5]='Host|nginx.org';
+						AMProxy[6]="AppendHtml|header,header_html/footer,footer_html";
+
+						i=0;
+						AMProxyParamList='';
+						AMProxyParamListEG='';
+						for line in ${AMProxy[*]}; do
+							OldIFS=$IFS;
+							IFS='|';
+							set -- $line;
+							i=$[$i+1];
+							AMProxyParamList[$i]="$1";
+							AMProxyParamListEG[$i]="$2";
+							IFS=$OldIFS;
+						done;
+
+						if [ "$ParamName" == '' ]; then
+							echo "[Notice] $domain proxy parameter set, please select: (1~$i)"
+							select ParamName in ${AMProxyParamList[*]}; do break; done;
+						fi;
+
+						for((;i>0;i--));do 
+							if [ "${AMProxyParamList[$i]}" == "$ParamName" ]; then
+								
+								[ "$ParamVal" == '' ] && read -p "[Notice] Please input $ParamName value (e.g: ${AMProxyParamListEG[$i]}): " ParamVal
+								ParamVal=${ParamVal//,/ };
+								if [ "$ParamName" == 'subs_filter' ]; then
+									ParamVal=${ParamVal//\'/\\\\\'};
+									set -- $ParamVal;
+									[ "$1" == 'add' ] && val="'$2' '$3' $4" || val="'$2'";
+									val=${val//__/ };
+									if [ "$1" == 'list' ]; then
+										grep 'subs_filter ' $domain_conf;
+										exit;
+									elif [ "$1" == 'add' ]; then
+										sed -i "/subs_filter_types/a\ \t\tsubs_filter $val;"  $domain_conf && echo "[OK] ${domain} AMProxy add success." ;
+									elif [ "$1" == 'del' ]; then
+										val=${val//\//\\/};
+										sed -i "/subs_filter $val/d" $domain_conf && echo "[OK] ${domain} AMProxy delete success." ;
+									else
+										amh module AMProxy-2.0 admin $action,$domain,$ParamName;
+										exit;
+									fi;
+
+								elif [ "$ParamName" == 'AppendHtml' ]; then
+									set -- $ParamVal;
+									val=${2//__/ };
+									val=${val//\'/\\\\\'};
+
+									if [ "$1" == 'header' ]; then
+										sed -i "/echo_before_body/d" $domain_conf;
+										sed -i "/subs_filter_types/a\ \t\techo_before_body '$val';" $domain_conf && echo '[OK] AppendHtml success.' ;
+									elif [ "$1" == 'footer' ]; then
+										sed -i "/echo_after_body/d" $domain_conf;
+										sed -i "/subs_filter_types/a\ \t\techo_after_body '$val';" $domain_conf && echo '[OK] AppendHtml success.' ;
+									else
+										amh module AMProxy-2.0 admin $action,$domain,$ParamName;
+										exit;
+									fi;
+								else
+									sed -i "s|\($ParamName \).*|\1$ParamVal;|" $domain_conf && echo "[OK] $ParamName parameters set success." ;
+								fi;
+								
+								amh nginx reload;
+								exit;
+							fi;
+						done;
+						amh module AMProxy-2.0 admin $action,$domain;
+
+					elif [ "$action" == 'del' ]; then
+						[ ! -f "$domain_conf" ] && echo "[Error] $domain AMProxy not exist!" && exit 1;
+						rm -f "$domain_conf" && echo "[OK] successfully delete $domain AMProxy.";
+						amh nginx reload;
+					elif [ "$action" == 'start' ]; then
+						[ -f "/usr/local/nginx/conf/proxy/$domain.conf" ] && echo "[OK] $domain is ok" && exit;
+						[ -f "/usr/local/nginx/conf/proxy_stop/$domain.conf" ] && mv /usr/local/nginx/conf/proxy_stop/$domain.conf /usr/local/nginx/conf/proxy/$domain.conf && \
+						kill -HUP `cat /usr/local/nginx/logs/nginx.pid` && echo "[OK] successfully start $domain " && exit;
+						echo "[Error] $domain not exist!" && exit 1;
+					elif [ "$action" == 'stop' ]; then
+						[ -f "/usr/local/nginx/conf/proxy_stop/$domain.conf" ] && echo "[OK] $domain already stopped" && exit;
+						[ -f "/usr/local/nginx/conf/proxy/$domain.conf" ] && mv /usr/local/nginx/conf/proxy/$domain.conf /usr/local/nginx/conf/proxy_stop/$domain.conf && \
+						kill -HUP `cat /usr/local/nginx/logs/nginx.pid` && echo "[OK] successfully stop $domain" && exit;
+						echo "[Error] $domain not exist!" && exit 1;
+					elif [ "$action" == 'start-cache' ]; then
+						[ ! -f "$domain_conf" ] && echo "[Error] $domain AMProxy not exist!" && exit 1;
+						sed -i "/proxy_cache amproxy/d" $domain_conf && sed -i "/default_type/a\ \t\tproxy_cache amproxy;" $domain_conf && \
+						kill -HUP `cat /usr/local/nginx/logs/nginx.pid` && echo "[OK] successfully start-cache $domain " && exit;
+					elif [ "$action" == 'stop-cache' ]; then
+						[ ! -f "$domain_conf" ] && echo "[Error] $domain AMProxy not exist!" && exit 1;
+						sed -i "/proxy_cache amproxy/d" $domain_conf && \
+						kill -HUP `cat /usr/local/nginx/logs/nginx.pid` && echo "[OK] successfully stop-cache $domain " && exit;
+					elif [ "$action" == 'cat' ]; then
+						[ ! -f "$domain_conf" ] && echo "[Error] $domain AMProxy not exist!" && exit 1;
+						cat "$domain_conf";
+					else
+						amh module AMProxy-2.0 admin;
+						exit;
+					fi;
+				fi;
+		else
+			exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+		if amh_module_status ; then
+				
+				#uninstall nginx modules
+				Cpunum=`cat /proc/cpuinfo |grep 'processor'|wc -l`;
+				nginx_configure=`/usr/local/nginx/sbin/nginx -V 2> /tmp/nginx_configure && cat /tmp/nginx_configure | grep 'configure arguments' | cut -d: -f2 && rm -f /tmp/nginx_configure`;
+				new_nginx_configure=$nginx_configure;
+				if echo "$new_nginx_configure" | grep 'add-module=/usr/local/echo-nginx-module-0.42' > /dev/null; then 
+					new_nginx_configure=`echo $new_nginx_configure | sed "s|--add-module=/usr/local/echo-nginx-module-0.42||"`;
+				fi;
+				if echo "$new_nginx_configure" | grep 'add-module=/usr/local/yaoweibin-ngx_http_substitutions_filter_module-e3291ac' > /dev/null; then 
+					new_nginx_configure=`echo $new_nginx_configure | sed "s|--add-module=/usr/local/yaoweibin-ngx_http_substitutions_filter_module-e3291ac||"`;
+				fi;
+
+				if [ "$nginx_configure" != "$new_nginx_configure" ]; then
+					cd /usr/local/;
+					wget http://code.amysql.com/files/nginx-1.2.9.tar.gz;
+					tar -zxf nginx-1.2.9.tar.gz;
+					cd nginx-1.2.9;
+					./configure $new_nginx_configure;
+					make -j $Cpunum;
+					mv /usr/local/nginx/sbin/nginx /usr/local/nginx/sbin/nginx-old;
+					\cp -a ./objs/nginx /usr/local/nginx/sbin/;
+					kill -USR2 `cat /usr/local/nginx/logs/nginx.pid`;
+					cd /usr/local/;
+					rm -rf nginx-1.2.9 nginx-1.2.9.tar.gz /usr/local/nginx/sbin/nginx-old;
+					kill -QUIT `cat /usr/local/nginx/logs/nginx.pid.oldbin`;
+				fi;
+
+				MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+				cd /usr/local/;
+				rm -rf echo-nginx-module-0.42 echo-nginx-module-0.42.tar.gz yaoweibin-ngx_http_substitutions_filter_module-e3291ac yaoweibin-ngx_http_substitutions_filter_module-0.6.2-5-ge3291ac.tar.gz;
+				rm -f /usr/local/nginx/conf/amhproxy.conf;
+				rm -rf /usr/local/nginx/conf/proxy /usr/local/nginx/conf/proxy_stop /home/amproxy_cache /home/amproxy_cache_tmp;
+				rm -f /home/wwwroot/index/web/Controller/amproxy.php /home/wwwroot/index/web/Model/amproxys.php /home/wwwroot/index/web/View/{amproxy.php,amproxy_cache.php,amproxy_cache_del.php,amproxy_cache_index.php,amproxy_category.php};
+				sed -i "/include proxy/d" /usr/local/nginx/conf/nginx.conf;
+				sed -i "/proxy_/d" /usr/local/nginx/conf/nginx.conf;
+				rm -f /root/amh/modules/AMProxy-2.0/InstallComplete;
+				mysql -uroot -p${MysqlPass} -B -N -e "DROP TABLE amh.module_amproxy" ;
+
+				amh nginx reload;
+				echo '[OK] AMProxy-2.0 Uninstall successful.';
+		else
+				exit;
+		fi;
+}
+
+#status
+function amh_module_status()
+{
+		if [ -f "/root/amh/modules/AMProxy-2.0/InstallComplete" ]; then
+				echo '[OK] AMProxy-2.0 is already installed.';
+				return 0;
+		else
+				echo '[Notice] AMProxy-2.0 is not installed.';
+				return 1;
+		fi;
+}
+
+

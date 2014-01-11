@@ -1,0 +1,84 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: PPTP-VPN-1.1';
+		echo 'AMH-ModuleDescription: 一键安装PPTP-VPN服务，VPN账号请配置 /etc/ppp/chap-secrets 文件。';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-09-12';
+		echo 'AMH-ModuleAdmin: ';
+		echo 'AMH-ModuleWebSite: http://www.ixiqin.com';
+		echo 'AMH-ModuleIco: http://amysql.com/View/images/amh_module/PPTP-VPN.gif';
+		echo 'AMH-ModuleScriptBy: 西秦公子.';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+				exit;
+		else
+				[ -f '/etc/ppp/chap-secrets' ] && \cp /etc/ppp/chap-secrets /tmp/chap-secrets;
+				for module_name in `ls /root/amh/modules/ | grep 'PPTP-VPN' | grep -v 'PPTP-VPN-1.1'`; do
+					amh module $module_name uninstall force;
+					amh module $module_name delete y;
+				done;
+
+				egrep -i "centos" /etc/issue && SysName='centos';
+				case $SysName in
+				centos)
+				bash /root/amh/modules/PPTP-VPN-1.1/shell/install_c.sh;;
+				*)
+				bash /root/amh/modules/PPTP-VPN-1.1/shell/install_d.sh;;
+				esac
+
+				[ -f '/tmp/chap-secrets' ] && \cp /tmp/chap-secrets /etc/ppp/chap-secrets && /etc/init.d/pptpd restart;
+				rm -f /tmp/chap-secrets;
+				touch /root/amh/modules/PPTP-VPN-1.1/InstallComplete;
+				amh_module_status;
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+				echo '[OK] VPN No management options.';
+		else
+				exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+		if amh_module_status ; then
+				egrep -i "centos" /etc/issue && SysName='centos';
+				egrep -i "debian" /etc/issue && SysName='debian';
+				case $SysName in
+				centos)
+				bash /root/amh/modules/PPTP-VPN-1.1/shell/uninstall_c.sh
+				echo '[OK] VPN Uninstall successful.';;
+				*)
+				bash /root/amh/modules/PPTP-VPN-1.1/shell/uninstall_d.sh
+				echo '[OK] VPN Uninstall successful.';;
+				esac;
+				rm -f /root/amh/modules/PPTP-VPN-1.1/InstallComplete;
+		else
+				exit;
+		fi;
+}
+
+#status
+function amh_module_status()
+{
+		if [ -f "/etc/ppp/chap-secrets" ] && [ -f "/root/amh/modules/PPTP-VPN-1.1/InstallComplete" ]; then
+				echo '[OK] VPN is already installed.';
+				return 0;
+		else
+				echo '[Notice] VPN is not installed.';
+				return 1;
+		fi;
+}

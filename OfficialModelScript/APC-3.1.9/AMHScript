@@ -1,0 +1,88 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+	echo 'AMH-ModuleName: APC-3.1.9';
+	echo 'AMH-ModuleDescription: APC，全称Alternative PHP Cache，是一种对PHP有效高速缓冲储存器工具，为我们提供了缓存和优化PHP的中间代码减少了硬盘的I/O，这对于性能的提升十分明显。APC的缓存分两部分：系统缓存和用户自定义数据缓存。';
+	echo 'AMH-ModuleButton: 安装/卸载';
+	echo 'AMH-ModuleDate: 2013-03-18';
+	echo 'AMH-ModuleAdmin: ./apc.php';
+	echo 'AMH-ModuleWebSite: http://amysql.com';
+	echo 'AMH-ModuleScriptBy: Amysql';
+}
+
+#install
+function amh_module_install()
+{
+	if amh_module_status ; then
+		exit;
+	else
+		cd /usr/local/;
+		wget http://code.amysql.com/files/APC-3.1.9.tgz;
+		tar -zxvf APC-3.1.9.tgz;
+		cd APC-3.1.9;
+		/usr/local/php/bin/phpize;
+		./configure --enable-apc-mmap --enable-apc --enable-apc-filehits --with-php-config=/usr/local/php/bin/php-config;
+		make && make install;
+		cp apc.php /home/wwwroot/index/web;
+
+cat >> /etc/php.ini <<EOF
+[APC]
+extension = "/usr/local/php/lib/php/extensions/no-debug-non-zts-20090626/apc.so"
+apc.enabled = 1
+apc.cache_by_default = on
+apc.shm_segments = 1
+apc.shm_size = 160
+apc.ttl = 7200
+apc.user_ttl = 7200
+apc.num_files_hint = 0
+apc.write_lock = On
+apc.gc_ttl=3600
+EOF
+	amh php reload;
+	amh_module_status;
+	fi;
+}
+
+#admin 
+function amh_module_admin()
+{
+	if amh_module_status ; then
+		echo '[OK] APC-3.1.9 Management: http://ip:8888/apc.php';
+	else
+		exit;
+	fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+	if amh_module_status ; then
+		cd /usr/local/;
+		rm -f APC-3.1.9.tgz;
+		rm -rf APC-3.1.9;
+		rm -f /usr/local/php/lib/php/extensions/no-debug-non-zts-20090626/apc.so;
+		rm -f /home/wwwroot/index/web/apc.php;
+		sed -i "/apc.*/d" /etc/php.ini;
+		sed -i "/\[APC\]/d" /etc/php.ini;
+		amh php reload;
+		echo '[OK] APC-3.1.9 Uninstall successful.';
+	else
+		exit;
+	fi;
+}
+
+#status
+function amh_module_status()
+{
+	if grep -q '\[APC\]' /etc/php.ini; then
+		echo '[OK] APC-3.1.9 is already installed.';
+		return 0;
+	else
+		echo '[Notice] APC-3.1.9 is not installed.';
+		return 1;
+	fi;
+}
+

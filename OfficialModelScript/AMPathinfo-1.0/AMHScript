@@ -1,0 +1,114 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: AMPathinfo-1.0';
+		echo 'AMH-ModuleDescription: AMPathinfo - AMH面板默认Nginx是没开启PATHINFO支持的，使用本模块可以开启或关闭虚拟主机的PATHINFO支持。小提示：使用这个模块会影响PHP的PATH_INFO与PHP_SELF的参数，建议有需要PATHINFO支持的程序(如typecho)才安装使用本模块。';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-06-01';
+		echo 'AMH-ModuleAdmin: index.php?c=AMPathinfo';
+		echo 'AMH-ModuleWebSite: http://amysql.com';
+		echo 'AMH-ModuleIco: http://amysql.com/View/images/amh_module/AMPathinfo.gif';
+		echo 'AMH-ModuleScriptBy: Amysql';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+			exit;
+		else
+			cd /root/amh/modules/AMPathinfo-1.0;
+			\cp web/Controller/AMPathinfo.php /home/wwwroot/index/web/Controller/AMPathinfo.php;
+			\cp web/Model/AMPathinfos.php /home/wwwroot/index/web/Model/AMPathinfos.php;
+			\cp web/View/AMPathinfo.php /home/wwwroot/index/web/View/AMPathinfo.php;
+			amh_module_status;
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+				param_list=${1//,/ };
+				set -- $param_list;
+				action=$1;
+				domain=$2;
+				mode=$3;
+
+				if [ "$action" == '' ]; then
+					echo "[Notice] AMPathinfo management, please select: (1~2)"
+					select action in 'list' 'edit' ; do
+						break;
+					done;
+				fi;
+
+				if [ "$action" == 'list' ]; then
+					for line in `ls /home/wwwroot/`; do
+						conf_file="/usr/local/nginx/conf/vhost/$line.conf";
+						[ -f "/usr/local/nginx/conf/vhost_stop/$line.conf" ] && conf_file="/usr/local/nginx/conf/vhost_stop/$line.conf";
+						if [ -f "$conf_file" ]; then
+							! grep -q 'fastcgi_split_path_info' $conf_file && echo "$line [PATHINFO][Close]" || echo "$line [PATHINFO][Open]";
+						fi;
+					done;
+					exit;
+				elif [ "$action" == 'edit' ]; then
+
+					[ "$domain" == '' ] && read -p "[Notice] please input domain(e.g amysql.com):" domain
+
+					conf_file="/usr/local/nginx/conf/vhost/$domain.conf";
+					[ -f "/usr/local/nginx/conf/vhost_stop/$domain.conf" ] && conf_file="/usr/local/nginx/conf/vhost_stop/$domain.conf";
+					if [ ! -f "$conf_file" ]; then
+						echo "[Error] \"$domain\" domain not exist.";
+						return 1;
+						exit 1;
+					fi;
+
+					if [ "$mode" != 'open' ] && [ "$mode" != 'close' ]; then
+						read -p "[Notice] confirm open PATHINFO? Please input (open/close):" mode
+						if [ "$mode" != 'open' ] && [ "$mode" != 'close' ]; then
+							amh module AMPathinfo-1.0 admin $action,$domain;
+							return 1;
+						fi;
+					fi;
+
+					sed -i '/path_info/d' $conf_file;
+					sed -i 's|\~ \^(\.+\.php)(\.\*)\$|~ .*\\.php\$|' $conf_file;
+					if [ "$mode" == 'open' ]; then
+						sed -i '/fastcgi_index/a\ \t\tfastcgi_split_path_info \^\(\.\+\\\.php\)\(\.\*\)\$\;\n \t\tfastcgi_param PATH_INFO \$fastcgi_path_info\;'  $conf_file;
+						sed -i 's|\~ \.\*\\\.php\$|~ ^(.+\.php)(.*)\$|' $conf_file;
+					fi;
+
+					amh nginx reload;
+					return 0;
+				fi;
+		else
+				exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+		if amh_module_status ; then
+				rm -f /home/wwwroot/index/web/Controller/AMPathinfo.php /home/wwwroot/index/web/Model/AMPathinfos.php /home/wwwroot/index/web/View/AMPathinfo.php;
+				echo '[OK] AMPathinfo-1.0 Uninstall successful.';
+		else
+				exit;
+		fi;
+}
+
+#status
+function amh_module_status()
+{
+		if [ -f "/home/wwwroot/index/web/Controller/AMPathinfo.php" ]; then
+				echo '[OK] AMPathinfo-1.0 is already installed.';
+				return 0;
+		else
+				echo '[Notice] AMPathinfo-1.0 is not installed.';
+				return 1;
+		fi;
+}
+

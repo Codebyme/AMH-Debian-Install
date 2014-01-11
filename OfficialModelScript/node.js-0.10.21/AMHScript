@@ -1,0 +1,94 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: node.js-0.10.21';
+		echo 'AMH-ModuleDescription: 安装node.js支持环境，node.js是一套用来编写高性能网络服务器的JavaScript工具包，可以快速构建网络服务及应用的平台。Node.js版本:0.10.21';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-10-30';
+		echo 'AMH-ModuleAdmin: ';
+		echo 'AMH-ModuleWebSite: http://www.ixiqin.com';
+		echo 'AMH-ModuleIco: http://amysql.com/View/images/amh_module/node.js.gif';
+		echo 'AMH-ModuleScriptBy: 西秦公子';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+				exit;
+		else
+#######Install Python##########
+		python_version=`python -V 2>/tmp/python_version && cat /tmp/python_version`;
+		if ! echo $python_version | egrep '2.6.|2.7.' > /dev/null; then 
+			if [ ! -d /usr/local/python2 ]; then
+				mkdir /usr/local/python2;
+				cd /usr/local;
+				wget http://code.amysql.com/files/Python-2.7.5.tgz;
+				tar -xvf Python-2.7.5.tgz;
+				cd Python-2.7.5;
+				./configure --prefix=/usr/local/python2;
+				make && make install;
+			fi;
+			mv /usr/bin/python /usr/bin/python.bak
+			ln -s /usr/local/python2/bin/python /usr/bin/python
+		fi;
+#######Install Node.js#########
+       cd /usr/local/
+wget http://nodejs.org/dist/v0.10.21/node-v0.10.21.tar.gz
+tar -zxvf node-v0.10.21.tar.gz
+rm -rf node-v0.10.21.tar.gz
+cd node-v0.10.21
+./configure --prefix=/usr/local/node.js-0.10.21/
+make
+make install
+ln -s /usr/local/node.js-0.10.21/bin/npm /usr/bin/npm
+ln -s /usr/local/node.js-0.10.21/bin/node /usr/bin/node
+######backup file revert#####
+if [ -f /usr/bin/python.bak ]; then
+rm -rf /usr/bin/python
+mv /usr/bin/python.bak /usr/bin/python
+fi;
+touch /root/amh/modules/node.js-0.10.21/InstallCompete
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+echo '[NO] node.js-0.10.21 No management options.';
+			exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+		if amh_module_status ; then
+		rm -rf /usr/local/node.js-0.10.21/
+    rm -rf /usr/local/node-v0.10.21/
+    rm -rf /root/amh/modules/node.js-0.10.21/InstallCompete
+    rm -rf /usr/bin/npm
+    rm -rf /usr/bin/node
+    echo '[OK] node.js-0.10.21 Uninstall successful.';
+		else 
+				exit;
+		fi;
+}
+
+#status
+function amh_module_status()
+{
+		if [ -f "/root/amh/modules/node.js-0.10.21/InstallCompete" ]; then
+				echo '[OK] node.js-0.10.21 is already installed.';
+				return 0;
+		else
+				echo '[Notice] node.js-0.10.21 is not installed.';
+				return 1;
+		fi;
+}
+
+

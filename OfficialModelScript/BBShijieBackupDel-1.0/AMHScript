@@ -1,0 +1,189 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: BBShijieBackupDel-1.0';
+		echo 'AMH-ModuleDescription: BBShijieBackupDel AMH面板备份功能增强模块，可设定本地及远程FTP保留的备份文件天数。需添加计划任务执行。';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-08-31';
+		echo 'AMH-ModuleAdmin: ./index.php?c=bbshijiebackupdel&a=bbshijiebackup_del';
+		echo 'AMH-ModuleWebSite: http://www.baobaocool.com';
+		echo 'AMH-ModuleScriptBy: BBShijie.';
+}
+
+#install
+function amh_module_install()
+{
+                if amh_module_status ; then
+                                exit;
+                else
+                                cd /root/amh/modules/BBShijieBackupDel-1.0;
+                                \cp web/Controller/bbshijiebackupdel.php  /home/wwwroot/index/web/Controller/;
+                                \cp web/View/bbshijiebackupdel.php  /home/wwwroot/index/web/View/;
+
+                                mkdir /usr/local/nginx/conf/bbshijiedel;
+                                chown -R www:www /usr/local/nginx/conf/bbshijiedel;
+                                \cp bbshijiedel/setting  /usr/local/nginx/conf/bbshijiedel;
+                                sed -i "/'id' => 'backup_revert'/i\array('id' => 'bbshijiebackup_del', 'url' => 'index.php?c=bbshijiebackupdel&a=bbshijiebackup_del', 'name' => '保留天数'),"  /home/wwwroot/index/web/View/category_list_data.php;
+                                amh_module_status;
+                fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+			param_list=${1//,/ };
+			set -- $param_list;
+			action=$1;
+			days=$2;
+
+			if [ "$action" == '' ]; then
+				echo "[Notice] BBShijieBackupDel management, please select: (1~5)"
+				select action in 'set' 'dellocal' 'delftp' 'delall' 'exit'; do
+					break;
+				done;
+			fi;
+
+			if [ "$action" == 'set' ]; then
+				#amh module BBShijieBackupDel-1.0 admin set,{$days}
+				echo $days > /usr/local/nginx/conf/bbshijiedel/setting;
+				exit;
+			elif [ "$action" == 'dellocal' ]; then
+				MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+				days=`cat /usr/local/nginx/conf/bbshijiedel/setting`;
+				let days--;
+				olddate=`date -d -${days}day +%Y%m%d`;
+				cd /home/backup;
+				for line in `ls *-*.amh`; do
+					time=`echo $line | grep -oE '([0-9]+-[0-9]+)' | awk -F '-' '{print $1}'`;
+					if [[ $time -lt $olddate ]]; then
+						#echo $line;
+						rm -f $line;
+						log_text="BBShijieBackupDel: 删除本地备份文件$line";
+						sql_log="SET NAMES 'utf8';INSERT INTO amh.amh_log(log_user_id, log_text, log_ip) VALUES('0', '${log_text}', 'localhost')";
+						mysql -uroot -p${MysqlPass} -B -N -e "${sql_log}";
+					fi;
+				done;
+
+				exit;
+			elif [ "$action" == 'delftp' ]; then
+				#read mysql select ftp remote server
+				cd /home/backup;
+				check_ftp_log='/home/wwwroot/index/log/BRftp_check.log';
+				MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+
+				sql="SELECT remote_id , remote_ip , remote_user , remote_password , remote_path FROM amh.amh_backup_remote WHERE remote_type = 'FTP' AND remote_status = '1' ORDER BY remote_id ASC";
+				mysql -uroot -p${MysqlPass} -B -N -e "${sql}"  | while read result; do
+				set -- $result;
+				status=`amh BRftp check $1`;
+				if egrep -q '150 |125 ' ${check_ftp_log}; then
+					ftp_host=$2;
+					ftp_user=$3;
+					ftp_pass=$4;
+					ftp_path=$5;
+
+					dir=`echo $ftp_path | sed "s#/# #g"`;
+					dirs='';
+					for dir_name in $dir; do
+						dirs="${dirs} \n mkdir ${dir_name} \n cd ${dir_name}";
+					done;
+					dirs=`echo -e $dirs`;
+
+ftp -v -n $ftp_host > ftpls.txt << amh_ftp
+user $ftp_user $ftp_pass
+type binary
+prompt off
+$dirs
+ls
+bye
+amh_ftp
+
+					awk '$NF ~/[0-9]+-[0-9]+.*\.amh$/ {print $NF}' ftpls.txt > filels.txt;
+					days=`cat /usr/local/nginx/conf/bbshijiedel/setting`;
+					let days--;
+					olddate=`date -d -${days}day +%Y%m%d`;
+					cat filels.txt | while read LINE
+					do
+						time=`echo $LINE | grep -oE '([0-9]+-[0-9]+)' | awk -F '-' '{print $1}'`;
+						if [[ $time -lt $olddate ]]; then
+							#echo $LINE;
+							echo "delete $LINE" >> filelist.txt;
+							log_text="BBShijieBackupDel: 删除FTP备份文件 \n $ftp_host/$ftp_path/$LINE";
+							sql_log="SET NAMES 'utf8';INSERT INTO amh.amh_log(log_user_id, log_text, log_ip) VALUES('0', '${log_text}', 'localhost')";
+							mysql -uroot -p${MysqlPass} -B -N -e "${sql_log}";
+						fi;
+					done;
+					rm -f ftpls.txt;
+					rm -f filels.txt;
+
+echo "
+open $ftp_host
+user $ftp_user $ftp_pass
+type binary
+prompt off
+$dirs
+" > ftpcmd.txt;
+cat filelist.txt >> ftpcmd.txt 2>/dev/null;
+echo "
+bye
+" >> ftpcmd.txt;
+ftp -v -n >/dev/null < ftpcmd.txt
+
+					rm -f ftpcmd.txt;
+					rm -f filelist.txt;
+					
+				else
+					log_text="FTP连接失败.";
+					sql_log="INSERT INTO amh.amh_log(log_user_id, log_text, log_ip) VALUES('0', '${log_text}', 'localhost')";
+					mysql -uroot -p${MysqlPass} -B -N -e "${sql_log}";
+				fi;
+
+				done;
+
+				exit;
+			elif [ "$action" == 'delall' ]; then
+				amh module BBShijieBackupDel-1.0 admin dellocal;
+				amh module BBShijieBackupDel-1.0 admin delftp;
+				exit;
+			else
+				amh module BBShijieBackupDel-1.0 admin;
+				exit;
+			fi;
+		else
+				exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+                if amh_module_status ; then
+                		#restore all ssl vhosts to normal
+                		sed -i "/bbshijiebackup_del/d" /home/wwwroot/index/web/View/category_list_data.php;
+
+                                rm -f /home/wwwroot/index/web/Controller/bbshijiebackupdel.php /home/wwwroot/index/web/View/bbshijiebackupdel.php;
+                                rm -rf /usr/local/nginx/conf/bbshijiedel/;
+				
+				crontab -l >/tmp/BBShijieBackupDel;
+				sed -i "/BBShijieBackupDel/d" /tmp/BBShijieBackupDel;
+				crontab /tmp/BBShijieBackupDel;
+                                echo '[OK] BBShijieBackupDel Uninstall successful.';
+                else
+                                exit;
+                fi;
+}
+
+#status
+function amh_module_status()
+{
+                if [ -f "/home/wwwroot/index/web/Controller/bbshijiebackupdel.php" ]; then
+                                echo '[OK] BBShijieBackupDel is already installed.';
+                                return 0;
+                else
+                                echo '[Notice] BBShijieBackupDel is not installed.';
+                                return 1;
+                fi;
+}

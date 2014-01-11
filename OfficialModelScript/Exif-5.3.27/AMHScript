@@ -1,0 +1,74 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: Exif-5.3.27';
+		echo 'AMH-ModuleDescription: 扩展PHP支持exif，通过PHP可以读取JPEG、TIFF图片格式头部的数码照片信息，包括拍摄时的光圈、快门、白平衡、ISO、焦距、日期时间等各种和拍摄条件以及相机品牌、型号、色彩编码、拍摄时录制的声音以及全球定位系统（GPS）、缩略图等。';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-08-07';
+		echo 'AMH-ModuleAdmin: ';
+		echo 'AMH-ModuleWebSite: http://amysql.com';
+		echo 'AMH-ModuleScriptBy: Amysql.';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+			exit;
+		else
+			cd /usr/local/;
+			wget http://code.amysql.com/files/exif.tar.gz;
+			tar -zxvf exif.tar.gz;
+			cd exif;
+			/usr/local/php/bin/phpize;
+			./configure --with-php-config=/usr/local/php/bin/php-config;
+			make && make install;
+cat >> /etc/php.ini <<EOF
+[exif] 
+extension = /usr/local/php/lib/php/extensions/no-debug-non-zts-20090626/exif.so
+EOF
+			amh php reload;
+			amh_module_status;
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+			echo '[OK] Exif-5.3.27 No management options.';
+		else
+			exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+		if amh_module_status ; then
+			cd /usr/local/;
+			rm -rf exif.tar.gz exif;
+			rm -f /usr/local/php/lib/php/extensions/no-debug-non-zts-20090626/exif.so;
+			sed -i "/\[exif\]/d" /etc/php.ini;
+			sed -i "/exif\.so/d" /etc/php.ini;
+			amh php reload;
+			echo '[OK] Exif-5.3.27 Uninstall successful.';
+		else
+			exit;
+		fi;
+}
+
+#status
+function amh_module_status()
+{
+		if grep -q 'exif\.so' /etc/php.ini; then
+			echo '[OK] Exif-5.3.27 is already installed.';
+			return 0;
+		else
+			echo '[Notice] Exif-5.3.27 is not installed.';
+			return 1;
+		fi;
+}
