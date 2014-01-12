@@ -14,5 +14,6 @@
 ##Code
 Download Script And Replace It:
 `cd /root/amh && mv module module.bak && wget -c --no-check-certificate https://github.com/Codebyme/AMH-Debian-Install/blob/master/module && chmod +x /root/amh/module`
+
 Replaced To Official:
 ` rm -f /root/amh/module && mv module.bak module && chmod +x /root/amh/module`
