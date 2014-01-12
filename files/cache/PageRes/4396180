@@ -16,7 +16,7 @@
   <meta content="authenticity_token" name="csrf-param" />
 <meta content="G+iluE3C6vqlnoItWzMC8quesRkRnKywY/QrOoVxgyE=" name="csrf-token" />
 
-  <meta content="collector.githubapp.com" name="octolytics-host" /><meta content="collector-cdn.github.com" name="octolytics-script-host" /><meta content="github" name="octolytics-app-id" /><meta content="B6705790:508A:3725BB1:52D2A7FB" name="octolytics-dimension-request_id" /><meta content="6304036" name="octolytics-actor-id" /><meta content="Codebyme" name="octolytics-actor-login" /><meta content="7188d2aa6a1346a6f30c36e9472e5460b935a516d7e265d5c70b3a74f12c964d" name="octolytics-actor-hash" />
+  <meta content="collector.githubapp.com" name="octolytics-host" /><meta content="collector-cdn.github.com" name="octolytics-script-host" /><meta content="github" name="octolytics-app-id" /><meta content="B6705790:5086:59D1C2:52D2A807" name="octolytics-dimension-request_id" /><meta content="6304036" name="octolytics-actor-id" /><meta content="Codebyme" name="octolytics-actor-login" /><meta content="7188d2aa6a1346a6f30c36e9472e5460b935a516d7e265d5c70b3a74f12c964d" name="octolytics-actor-hash" />
   <meta content="mobile" name="octolytics-dimension-device" />
   <meta content="6304036" name="octolytics-dimension-user_id" /><meta content="Codebyme" name="octolytics-dimension-user_login" /><meta content="15824856" name="octolytics-dimension-repository_id" /><meta content="Codebyme/AMH-Debian-Install" name="octolytics-dimension-repository_nwo" /><meta content="true" name="octolytics-dimension-repository_public" /><meta content="false" name="octolytics-dimension-repository_is_fork" /><meta content="15824856" name="octolytics-dimension-repository_network_root_id" /><meta content="Codebyme/AMH-Debian-Install" name="octolytics-dimension-repository_network_root_nwo" />
   
@@ -79,7 +79,7 @@
 <div class="file-browser">
 
   <p class="history-link">
-    <a href="/Codebyme/AMH-Debian-Install/commits/master">
+    <a href="/Codebyme/AMH-Debian-Install/commits/master/gitmod">
       <span class="octicon octicon-history"></span>
       View 9 commits
     </a>
@@ -98,35 +98,13 @@
         </span>
         <span class="separator"> / </span>
 
-        
+        <strong class="final-path">gitmod</strong>
       </li>
 
         <li>
-          <a href="/Codebyme/AMH-Debian-Install/tree/master/OfficialModelScript" class="file-list-item">
-            <span class="octicon octicon-file-directory"></span>
-            OfficialModelScript
-              <span class="timestamp">about 22 hours ago</span>
-          </a>
-        </li>
-        <li>
-          <a href="/Codebyme/AMH-Debian-Install/tree/master/files" class="file-list-item">
-            <span class="octicon octicon-file-directory"></span>
-            files
-              <span class="timestamp">less than a minute ago</span>
-          </a>
-        </li>
-        <li>
-          <a href="/Codebyme/AMH-Debian-Install/tree/master/gitmod" class="file-list-item">
-            <span class="octicon octicon-file-directory"></span>
-            gitmod
-              <span class="timestamp">less than a minute ago</span>
-          </a>
-        </li>
-        <li>
-          <a href="/Codebyme/AMH-Debian-Install/blob/master/README.md" class="file-list-item">
-            <span class="octicon octicon-book"></span>
-            README.md
-              <span class="timestamp">about 23 hours ago</span>
+          <a href="/Codebyme/AMH-Debian-Install/blob/master/gitmod/ALiOSS-1.1.module.tar.gz" class="file-list-item">
+            <span class="octicon octicon-file-zip"></span>
+            ALiOSS-1.1.module.tar.gz
           </a>
         </li>
     </ul>
@@ -141,7 +119,7 @@
         <a href="#"><span class="mega-octicon octicon-mark-github"></span></a>
 
         <ul class="clearfix">
-          <li><a href="/Codebyme/AMH-Debian-Install?mobile=0">Desktop version</a></li>
+          <li><a href="/Codebyme/AMH-Debian-Install/tree/master/gitmod?mobile=0">Desktop version</a></li>
 
         </ul>
       </div>
