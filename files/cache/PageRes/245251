@@ -1,0 +1,143 @@
+
+
+
+
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" id="vp" content="initial-scale=1.0,user-scalable=no,maximum-scale=1,width=device-width">
+  <meta name="viewport" id="vp" content="initial-scale=1.0,user-scalable=no,maximum-scale=1" media="(device-height: 568px)">
+  <link rel="apple-touch-icon-precomposed" href="apple-touch-icon-precomposed.png">
+  <link rel="apple-touch-icon-precomposed" sizes="114x114" href="apple-touch-icon-114-precomposed.png">
+  <meta name="google-analytics" content="UA-3769691-2">
+
+  <meta content="authenticity_token" name="csrf-param" />
+<meta content="G+iluE3C6vqlnoItWzMC8quesRkRnKywY/QrOoVxgyE=" name="csrf-token" />
+
+  <meta content="collector.githubapp.com" name="octolytics-host" /><meta content="collector-cdn.github.com" name="octolytics-script-host" /><meta content="github" name="octolytics-app-id" /><meta content="B6705790:5088:1D7B51A:52D2A5AC" name="octolytics-dimension-request_id" /><meta content="6304036" name="octolytics-actor-id" /><meta content="Codebyme" name="octolytics-actor-login" /><meta content="7188d2aa6a1346a6f30c36e9472e5460b935a516d7e265d5c70b3a74f12c964d" name="octolytics-actor-hash" />
+  <meta content="mobile" name="octolytics-dimension-device" />
+  <meta content="6304036" name="octolytics-dimension-user_id" /><meta content="Codebyme" name="octolytics-dimension-user_login" /><meta content="15824856" name="octolytics-dimension-repository_id" /><meta content="Codebyme/AMH-Debian-Install" name="octolytics-dimension-repository_nwo" /><meta content="true" name="octolytics-dimension-repository_public" /><meta content="false" name="octolytics-dimension-repository_is_fork" /><meta content="15824856" name="octolytics-dimension-repository_network_root_id" /><meta content="Codebyme/AMH-Debian-Install" name="octolytics-dimension-repository_network_root_nwo" />
+  
+
+  <title>Codebyme/AMH-Debian-Install</title>
+
+  <link href="https://github.global.ssl.fastly.net/assets/mobile-9dbdbf3da2fbbce7a1483512e051e1ef65d0266e.css" media="all" rel="stylesheet" type="text/css" />
+  <script async="async" defer="defer" src="https://github.global.ssl.fastly.net/assets/mobile-756d65616fde6492018be51d0739ed8ccfcc25b6.js" type="text/javascript"></script>
+</head>
+<body class="">
+  <header class="nav-bar clearfix">
+    <div class="nav-bar-inner">
+      
+
+      <button class="header-button header-nav-button touchable js-show-global-nav ">
+        <span class="octicon octicon-three-bars"></span>
+        <span class="octicon octicon-primitive-dot"></span>
+      </button>
+
+      <div class="nav-bar-title-text">
+              <span class="octicon octicon-repo"></span>
+
+    <strong><a href="/Codebyme">Codebyme</a></strong>
+    /
+    <strong><a href="/Codebyme/AMH-Debian-Install">AMH-Debian-Install</a></strong>
+
+      </div>
+    </div>
+
+    <nav class="nav-bar-tabs repo-nav-bar-tabs ">
+      <ul>
+
+          <li>
+            <a href="/"><span class="octicon octicon-dashboard"></span> Dashboard</a>
+          </li>
+
+        <li>
+          <a href="/explore"><span class="octicon octicon-telescope"></span> Explore</a>
+        </li>
+
+        <li>
+            <a href="/logout"><span class="octicon octicon-log-out"></span> Sign out</a>
+        </li>
+
+            <li class="section-title">This repository</li>
+    <li><a href="/Codebyme/AMH-Debian-Install?files=1"><span class="octicon octicon-code"></span> Code</a></li>
+      <li><a href="/Codebyme/AMH-Debian-Install/issues"><span class="octicon octicon-issue-opened"></span> Issues</a></li>
+    <li><a href="/Codebyme/AMH-Debian-Install/pulls"><span class="octicon octicon-git-pull-request"></span> Pull Requests</a></li>
+    <li><a href="/Codebyme/AMH-Debian-Install/pulse"><span class="octicon octicon-pulse"></span> Pulse</a></li>
+
+      </ul>
+    </nav>
+  </header>
+
+  
+
+        
+
+
+<div class="file-browser">
+
+  <p class="history-link">
+    <a href="/Codebyme/AMH-Debian-Install/commits/master/files">
+      <span class="octicon octicon-history"></span>
+      View 7 commits
+    </a>
+  </p>
+
+  <div class="bubble">
+    <ul class="bubble-list files-list">
+      <li class="path">
+        <span class="branch">master</span>
+        <span class='bold'>
+          <span itemtype="http://data-vocabulary.org/Breadcrumb">
+            <a href="/Codebyme/AMH-Debian-Install?files=1" data-branch="master" data-direction="back" itemscope="url">
+              <span itemprop="title">AMH-Debian-Install</span>
+            </a>
+          </span>
+        </span>
+        <span class="separator"> / </span>
+
+        <strong class="final-path">files</strong>
+      </li>
+
+        <li>
+          <a href="/Codebyme/AMH-Debian-Install/blob/master/files/Python-2.7.5.tgz" class="file-list-item">
+            <span class="octicon octicon-file-zip"></span>
+            Python-2.7.5.tgz
+          </a>
+        </li>
+        <li>
+          <a href="/Codebyme/AMH-Debian-Install/blob/master/files/mutt-1.5.21.tar.gz" class="file-list-item">
+            <span class="octicon octicon-file-zip"></span>
+            mutt-1.5.21.tar.gz
+          </a>
+        </li>
+        <li>
+          <a href="/Codebyme/AMH-Debian-Install/blob/master/files/osscmd.tar.gz" class="file-list-item">
+            <span class="octicon octicon-file-zip"></span>
+            osscmd.tar.gz
+          </a>
+        </li>
+    </ul>
+  </div>
+</div>
+
+
+
+  <footer class="clearfix">
+    <div class="container">
+      <div class="footer">
+        <a href="#"><span class="mega-octicon octicon-mark-github"></span></a>
+
+        <ul class="clearfix">
+          <li><a href="/Codebyme/AMH-Debian-Install/tree/master/files?mobile=0">Desktop version</a></li>
+
+        </ul>
+      </div>
+    </div>
+  </footer>
+  
+</body>
+</html>
+
