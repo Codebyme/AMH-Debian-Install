@@ -7,6 +7,12 @@
 ####Q:How I Use Third Party Module?
 #####A:You can download the script we provide to you and replace the official script on /root/amh
 ####Q:How I Upload A new Module?
-#####A:you ca Send your module to me at **codebyme@mail.com**
+#####A:you can Send your module to me at **codebyme@mail.com**
+####Q: How I download A Thirdparty module.
+#####A:You Only Can use `amh module download modulename` to download a ThirdParty Module.
 ===============
-##Links
+##Code
+Download Script And Replace It:
+`cd /root/amh && mv module module.bak && wget -c --no-check-certificate https://github.com/Codebyme/AMH-Debian-Install/blob/master/module && chmod +x /root/amh/module`
+Replaced To Official:
+` rm -f /root/amh/module && mv module.bak module && chmod +x /root/amh/module`
