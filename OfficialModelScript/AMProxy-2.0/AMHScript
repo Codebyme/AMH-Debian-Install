@@ -42,23 +42,23 @@ function amh_module_install()
 
 				if [ "$nginx_configure" != "$new_nginx_configure" ]; then
 					cd /usr/local/;
-					wget http://code.amysql.com/files/nginx-1.2.9.tar.gz;
-					tar -zxf nginx-1.2.9.tar.gz;
+					wget http://code.amysql.com/files/nginx-1.4.4.tar.gz;
+					tar -zxf nginx-1.4.4.tar.gz;
 					wget http://code.amysql.com/files/echo-nginx-module-0.42.tar.gz;
 					tar -zxf echo-nginx-module-0.42.tar.gz;
 					wget http://code.amysql.com/files/yaoweibin-ngx_http_substitutions_filter_module-0.6.2-5-ge3291ac.tar.gz;
 					tar -zxf yaoweibin-ngx_http_substitutions_filter_module-0.6.2-5-ge3291ac.tar.gz;
 
-					cd nginx-1.2.9;
+					cd nginx-1.4.4;
 					./configure $new_nginx_configure;
 					make -j $Cpunum;
 					mv /usr/local/nginx/sbin/nginx /usr/local/nginx/sbin/nginx-old;
 					\cp -a ./objs/nginx /usr/local/nginx/sbin/;
 					kill -USR2 `cat /usr/local/nginx/logs/nginx.pid`;
 					cd /usr/local/;
-					rm -rf nginx-1.2.9 nginx-1.2.9.tar.gz /usr/local/nginx/sbin/nginx-old;
+					rm -rf nginx-1.4.4 nginx-1.4.4.tar.gz /usr/local/nginx/sbin/nginx-old;
 					kill -QUIT `cat /usr/local/nginx/logs/nginx.pid.oldbin`;
-					sed -i "s|Nginx.*<br />|Nginx 1.2.9 <br />|" /home/wwwroot/index/web/View/index.php;
+					sed -i "s|Nginx.*<br />|Nginx 1.4.4 <br />|" /home/wwwroot/index/web/View/index.php;
 				fi;
 
 				MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
@@ -327,16 +327,16 @@ function amh_module_uninstall()
 
 				if [ "$nginx_configure" != "$new_nginx_configure" ]; then
 					cd /usr/local/;
-					wget http://code.amysql.com/files/nginx-1.2.9.tar.gz;
-					tar -zxf nginx-1.2.9.tar.gz;
-					cd nginx-1.2.9;
+					wget http://code.amysql.com/files/nginx-1.4.4.tar.gz;
+					tar -zxf nginx-1.4.4.tar.gz;
+					cd nginx-1.4.4;
 					./configure $new_nginx_configure;
 					make -j $Cpunum;
 					mv /usr/local/nginx/sbin/nginx /usr/local/nginx/sbin/nginx-old;
 					\cp -a ./objs/nginx /usr/local/nginx/sbin/;
 					kill -USR2 `cat /usr/local/nginx/logs/nginx.pid`;
 					cd /usr/local/;
-					rm -rf nginx-1.2.9 nginx-1.2.9.tar.gz /usr/local/nginx/sbin/nginx-old;
+					rm -rf nginx-1.4.4 nginx-1.4.4.tar.gz /usr/local/nginx/sbin/nginx-old;
 					kill -QUIT `cat /usr/local/nginx/logs/nginx.pid.oldbin`;
 				fi;
 
