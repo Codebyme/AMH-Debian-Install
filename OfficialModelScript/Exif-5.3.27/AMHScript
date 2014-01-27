@@ -20,7 +20,7 @@ function amh_module_install()
 			exit;
 		else
 			cd /usr/local/;
-			wget http://code.amysql.com/files/exif.tar.gz;
+			wget --no-check-certificate https://github.com/Codebyme/AMH-Debian-Install/blob/master/files/exif.tar.gz;
 			tar -zxvf exif.tar.gz;
 			cd exif;
 			/usr/local/php/bin/phpize;
