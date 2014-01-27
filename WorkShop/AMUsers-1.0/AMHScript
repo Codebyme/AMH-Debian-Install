@@ -22,7 +22,7 @@ function amh_module_install()
 		else
 			cd /usr/local/;
 			MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
-			wget http://code.amysql.com/files/AMUsers-1.0.zip;
+			wget --no-check-certificate https://github.com/Codebyme/AMH-Debian-Install/blob/master/files/AMUsers-1.0.zip;
 			unzip AMUsers-1.0.zip;
 			mv AMUsers-1.0 /home/wwwroot/index/web;
 			mysql -uroot -p$MysqlPass < ./AMUsers.sql;
@@ -30,7 +30,7 @@ function amh_module_install()
 			touch /home/wwwroot/index/web/AMUsers-1.0/View/index_templet.php;
 			chown www:www /home/wwwroot/index/web/AMUsers-1.0/View/index_templet.php;
 
-			wget http://code.amysql.com/files/AMUsers-host-ftp-pass.sql;
+			wget --no-check-certificate https://github.com/Codebyme/AMH-Debian-Install/blob/master/files/AMUsers-host-ftp-pass.sql;
 			mysql -uroot -p$MysqlPass < ./AMUsers-host-ftp-pass.sql;
 			rm -f AMUsers-host-ftp-pass.sql;
 
