@@ -1,0 +1,74 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: PHP-Beast-1.0';
+		echo 'AMH-ModuleDescription: PHP Beast是一个源码免费加密模块，使用这个模块可以把PHP源码加密并在此模块下运行。/root/amh/modules/PHP-Beast-1.0/key.c 可自定义设置Key后再安装，增强加密。使用方法：beast_encode_file($input_file, $output_file)';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-09-23';
+		echo 'AMH-ModuleAdmin: ';
+		echo 'AMH-ModuleWebSite: http://www.ixiqin.com';
+		echo 'AMH-ModuleScriptBy: 西秦公子.';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+			exit;
+		else
+			mkdir /usr/local/PHP-Beast-1.0
+			cd /usr/local/PHP-Beast-1.0/
+			wget http://code.amysql.com/files/php-beast-1.0.zip
+			unzip php-beast-1.0.zip
+			cd php-beast-master
+			\cp /root/amh/modules/PHP-Beast-1.0/key.c ./
+			/usr/local/php/bin/phpize
+			./configure --with-php-config=/usr/local/php/bin/php-config
+			make
+			make install
+			echo "extension=beast.so">> /etc/php.ini
+			touch /root/amh/modules/PHP-Beast-1.0/installcompete
+			amh php reload;
+			amh_module_status;
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+			echo '[OK] PHP-Beast-1.0 No management options.';
+		else
+			exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+		if amh_module_status ; then
+			rm -rf /usr/local/PHP-Beast-1.0
+			rm -rf /root/amh/modules/PHP-Beast-1.0/installcompete
+			sed -i /beast.so/d /etc/php.ini
+			rm -f /usr/local/php/lib/php/extensions/no-debug-non-zts-20090626/beast.so
+			amh php reload;
+			echo '[OK] PHP-Beast-1.0 Uninstall successful.';
+		else
+			exit;
+		fi;
+}
+
+#status
+function amh_module_status()
+{
+		if [ -f "/root/amh/modules/PHP-Beast-1.0/installcompete" ]; then
+			echo '[OK] PHP-Beast-1.0 is already installed.';
+			return 0;
+		else
+			echo '[Notice] PHP-Beast-1.0 is not installed.';
+			return 1;
+		fi;
+}

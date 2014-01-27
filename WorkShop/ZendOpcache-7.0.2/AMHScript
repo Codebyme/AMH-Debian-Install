@@ -1,0 +1,88 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+	echo 'AMH-ModuleName: ZendOpcache-7.0.2';
+	echo 'AMH-ModuleDescription: Optimizer+ 是 Zend 开发的闭源但可以免费使用的 PHP 优化加速组件，是第一个也是最快的 opcode 缓存工具。现在，Zend 科技公司将 Optimizer+ 在 PHP License 下开源成为 Zend Opcache。';
+	echo 'AMH-ModuleButton: 安装/卸载';
+	echo 'AMH-ModuleDate: 2013-08-03';
+	echo 'AMH-ModuleAdmin: /ocp.php';
+	echo 'AMH-ModuleWebSite: http://www.mf8.biz';
+	echo 'AMH-ModuleIco: http://amysql.com/View/images/amh_module/ZendOpcache.gif';
+	echo 'AMH-MoudleScriptBy: mf8.biz';
+}
+
+#install
+function amh_module_install()
+{
+	if amh_module_status ; then
+		exit;
+	else
+		cd /usr/local/;
+		wget wget http://pecl.php.net/get/zendopcache-7.0.2.tgz;
+		tar xzf zendopcache-7.0.2.tgz;
+		cd zendopcache-7.0.2;
+		/usr/local/php/bin/phpize;
+		./configure --with-php-config=/usr/local/php/bin/php-config;
+		make && make install;
+cat >> /etc/php.ini <<EOF
+[Zend Opcache]
+zend_extension= /usr/local/php/lib/php/extensions/no-debug-non-zts-20090626/opcache.so
+opcache.memory_consumption=64
+opcache.interned_strings_buffer=8
+opcache.max_accelerated_files=4000
+opcache.force_restart_timeout=180
+opcache.revalidate_freq=60
+opcache.fast_shutdown=1
+opcache.enable_cli=1
+EOF
+	cp /root/amh/modules/ZendOpcache-7.0.2/ocp.php /home/wwwroot/index/web/ocp.php;
+	amh php reload;
+	amh_module_status;
+	fi;
+}
+
+#admin 
+function amh_module_admin()
+{
+	if amh_module_status ; then
+		echo '[OK] ZendOpcache-7.0.2 No management options.';
+	else
+		exit;
+	fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+	if amh_module_status ; then
+		cd /usr/local/;
+		rm -rf zendopcache-7.0.2.tgz;
+		rm -rf zendopcache-7.0.2;
+		rm -rf /usr/local/php/lib/php/extensions/no-debug-non-zts-20090626/opcache.so;
+		rm -f /home/wwwroot/index/web/ocp.php;
+
+		sed -i "/Zend Opcache/d" /etc/php.ini;
+		sed -i "/opcache.*/d" /etc/php.ini;
+		sed -i "/\[Zend Opcache\]/d" /etc/php.ini;
+		amh php reload;
+		echo '[OK] ZendOpcache-7.0.2 Uninstall successful.';
+	else
+		exit;
+	fi;
+}
+
+#status
+function amh_module_status()
+{
+	if grep -q '\[Zend Opcache\]' /etc/php.ini; then
+		echo '[OK] ZendOpcache-7.0.2 is already installed.';
+		return 0;
+	else
+		echo '[Notice] ZendOpcache-7.0.2 is not installed.';
+		return 1;
+	fi;
+}
+

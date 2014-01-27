@@ -1,0 +1,80 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: Sockets-5.3.22';
+		echo 'AMH-ModuleDescription: 扩展PHP Sockets(套接口)通信支持，套接口可以看作是进程间通信的端点(endpoint)，每个套接口的名字都是唯一的，其他进程可以发现、连接并且与之通信。';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-07-03';
+		echo 'AMH-ModuleAdmin: ';
+		echo 'AMH-ModuleWebSite: http://amysql.com';
+		echo 'AMH-MoudleScriptBy: Amysql';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+				exit;
+		else
+				cd /usr/local/;
+				wget http://code.amysql.com/files/sockets-5.3.22.tar.gz
+				tar -zxvf sockets-5.3.22.tar.gz;
+				cd sockets;
+				/usr/local/php/bin/phpize;
+				./configure --with-php-config=/usr/local/php/bin/php-config;
+				make && make install;
+				
+				
+cat >> /etc/php.ini <<EOF
+[Sockets] 
+extension = /usr/local/php/lib/php/extensions/no-debug-non-zts-20090626/sockets.so
+EOF
+		amh php reload;
+		amh_module_status;
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+				echo '[OK] Sockets-5.3.22 No management options.';
+		else
+				exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+		if amh_module_status ; then
+
+				cd /usr/local/;
+				rm -rf sockets;
+				rm -f sockets-5.3.22.tar.gz;
+				rm -f /usr/local/php/lib/php/extensions/no-debug-non-zts-20090626/sockets.so;
+
+				sed -i "/\[Sockets\]/d" /etc/php.ini;
+				sed -i "/sockets\.so/d" /etc/php.ini;
+				amh php reload;
+				echo '[OK] Sockets-5.3.22 Uninstall successful.';
+		else
+				exit;
+		fi;
+}
+
+#status
+function amh_module_status()
+{
+		if grep -q '\[Sockets\]' /etc/php.ini; then
+				echo '[OK] Sockets-5.3.22 is already installed.';
+				return 0;
+		else
+				echo '[Notice] Sockets-5.3.22 is not installed.';
+				return 1;
+		fi;
+}
+

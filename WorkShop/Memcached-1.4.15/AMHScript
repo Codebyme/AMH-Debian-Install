@@ -1,0 +1,98 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: Memcached-1.4.15';
+		echo 'AMH-ModuleDescription: Memcached是一套分布式的快取系统，当初是Danga Interactive为了LiveJournal所发展的，目前被许多软件（如MediaWiki）所使用。';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-08-03';
+		echo 'AMH-ModuleAdmin: /memadmin';
+		echo 'AMH-ModuleWebSite: http://www.mf8.biz';
+		echo 'AMH-ModuleIco: http://amysql.com/View/images/amh_module/Memcached.gif';
+		echo 'AMH-MoudleScriptBy: MF8.biz';
+}
+
+#install
+function amh_module_install()
+{
+	if amh_module_status ; then
+		exit;
+	else
+		##编译安装libevent支持
+		cd /usr/local/;
+		wget -c https://github.com/downloads/libevent/libevent/libevent-2.0.21-stable.tar.gz;
+		tar zxvf libevent-2.0.21-stable.tar.gz;
+		cd libevent-2.0.21-stable/;
+		./configure --prefix=/usr/local/libevent;
+		make && make install;
+		echo "/usr/local/libevent/lib/" >> /etc/ld.so.conf;
+		ln -s /usr/local/libevent/lib/libevent-2.0.so.5  /lib/libevent-2.0.so.5;
+		ldconfig;
+
+		##编译安装memecached
+		cd /usr/local/;
+		wget http://code.amysql.com/files/memcached-1.4.15.tar.gz;
+		tar -zxvf memcached-1.4.15.tar.gz;
+		cd memcached-1.4.15;
+		./configure --prefix=/usr/local/memcached --with-libevent=/usr/local/libevent;
+		make && make install;
+		ln /usr/local/memcached/bin/memcached /usr/bin/memcached;
+
+		cd /root/amh/modules/Memcached-1.4.15;
+		cp -a ./memadmin /home/wwwroot/index/web/;
+		cp ./memcached-init /etc/init.d/memcached;
+		chmod +x /etc/init.d/memcached;
+		useradd -s /sbin/nologin nobody;
+		egrep -i "centos" /etc/issue && chkconfig --level 345 memcached on || update-rc.d -f memcached defaults;
+		/etc/init.d/memcached start;
+		amh_module_status;
+	fi;
+}
+
+#admin 
+function amh_module_admin()
+{
+	if amh_module_status ; then
+		echo '[OK] Memcachedd-1.4.15 Management: http://ip:8888/memcached.php ';
+	else
+		exit;
+	fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+	if amh_module_status ; then
+		cd /usr/local/;
+		rm -rf libevent-2.0.21-stable.tar.gz;
+		rm -rf libevent-2.0.21-stable;
+		rm -rf /usr/local/libevent;
+		rm -rf /lib/libevent-2.0.so.5;
+		sed -i "/libevent/d" /etc/ld.so.conf;
+
+		/etc/init.d/memcached stop;
+		rm -rf memcached-1.4.15.tar.gz;
+		rm -rf memcached-1.4.15;
+		rm -rf /usr/local/memcached;
+		rm -f /usr/bin/memcached /etc/init.d/memcached;
+		egrep -i "centos" /etc/issue && chkconfig memcached off || update-rc.d -f memcached remove;
+		rm -rf /home/wwwroot/index/web/memadmin;
+		echo '[OK] memcached-1.4.15 Uninstall successful.';
+	else
+		exit;
+	fi;
+}
+
+#status
+function amh_module_status()
+{
+	if [ -f "/home/wwwroot/index/web/memadmin/index.php" ]; then
+		echo '[OK] memcached-1.4.15 is already installed.';
+		return 0;
+	else
+		echo '[Notice] memcached-1.4.15 is not installed.';
+		return 1;
+	fi;
+}

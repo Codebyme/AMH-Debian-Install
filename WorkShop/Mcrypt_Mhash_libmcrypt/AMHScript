@@ -1,0 +1,109 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: Mcrypt_Mhash_libmcrypt';
+		echo 'AMH-ModuleDescription: Mcrypt_Mhash_libmcrypt 功能强大的加密算法扩展库，可以实现加密解密，包括有22种算法，其中就包括下面的几种算法：Blowfish RC2 Safer-sk64 xtea Cast-256 RC4 Safer-sk128 DES RC4-iv Serpent Enigma Rijndael-128 Threeway Gost Rijndael-192 TripleDES LOKI97 Rijndael-256 Twofish PanamaSaferplus Wake';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-02-01';
+		echo 'AMH-ModuleAdmin: ';
+		echo 'AMH-ModuleWebSite: http://amysql.com';
+		echo 'AMH-ModuleScriptBy: Amysql';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+				exit;
+		else
+				cd /usr/local/;
+				wget http://code.amysql.com/files/libmcrypt-2.5.8.tar.gz;
+				wget http://code.amysql.com/files/mhash-0.9.9.9.tar.gz;
+				wget http://code.amysql.com/files/mcrypt-2.6.8.tar.gz;
+				wget http://code.amysql.com/files/mcrypt.tar.gz;
+
+				tar -zxf libmcrypt-2.5.8.tar.gz;
+				cd libmcrypt-2.5.8;
+				./configure;
+				make && make install;
+
+				cd /usr/local;
+				tar -zxf mhash-0.9.9.9.tar.gz;
+				cd mhash-0.9.9.9;
+				./configure;
+				make && make install;
+
+				cd /usr/local;
+				tar -zxf mcrypt-2.6.8.tar.gz;
+				cd mcrypt-2.6.8;
+				LD_LIBRARY_PATH=/usr/local/lib;
+				./configure;
+
+				cd /usr/local;
+				tar -zxf mcrypt.tar.gz;
+				cd mcrypt;
+				/usr/local/php/bin/phpize;
+				./configure --with-php-config=/usr/local/php/bin/php-config;
+				make && make install;
+
+cat >> /etc/php.ini <<EOF
+[mcrypt.so]
+extension = /usr/local/php/lib/php/extensions/no-debug-non-zts-20090626/mcrypt.so
+EOF
+		amh php reload;
+		amh_module_status;
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+				echo '[OK] Mcrypt_Mhash_libmcrypt No management options.';
+		else
+				exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+		if amh_module_status ; then
+				cd /usr/local/;
+				rm -rf libmcrypt-2.5.8.tar.gz;
+				rm -rf libmcrypt-2.5.8;
+
+				rm -rf mhash-0.9.9.9.tar.gz;
+				rm -rf mhash-0.9.9.9;
+
+				rm -rf mcrypt-2.6.8.tar.gz;
+				rm -rf mcrypt-2.6.8;
+
+				rm -rf mcrypt.tar.gz;
+				rm -rf mcrypt;
+				
+				rm -rf /usr/local/php/lib/php/extensions/no-debug-non-zts-20090626/mcrypt.so;
+
+				sed -i "/mcrypt\.so/d" /etc/php.ini;
+				amh php reload;
+				echo '[OK] Mcrypt_Mhash_libmcrypt Uninstall successful.';
+		else
+				exit;
+		fi;
+}
+
+#status
+function amh_module_status()
+{
+		if grep -q '\[mcrypt\.so\]' /etc/php.ini; then
+				echo '[OK] Mcrypt_Mhash_libmcrypt is already installed.';
+				return 0;
+		else
+				echo '[Notice] Mcrypt_Mhash_libmcrypt is not installed.';
+				return 1;
+		fi;
+}
+
