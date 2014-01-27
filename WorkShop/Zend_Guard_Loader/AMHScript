@@ -21,11 +21,11 @@ function amh_module_install()
 		else
 				cd /usr/local/;
 				if [ `getconf WORD_BIT` == '32' ] && [ `getconf LONG_BIT` == '64' ]; then
-					wget http://code.amysql.com/files/ZendGuardLoader-php-5.3-linux-glibc23-x86_64.tar.gz;
+					wget --no-check-certificate https://github.com/Codebyme/AMH-Debian-Install/blob/master/files/ZendGuardLoader-php-5.3-linux-glibc23-x86_64.tar.gz;
 					tar -zxvf ZendGuardLoader-php-5.3-linux-glibc23-x86_64.tar.gz;
 					mv ZendGuardLoader-php-5.3-linux-glibc23-x86_64 Zend_Guard_Loader;
 				else
-					wget http://code.amysql.com/files/ZendGuardLoader-php-5.3-linux-glibc23-i386.tar.gz;
+					wget --no-check-certificate https://github.com/Codebyme/AMH-Debian-Install/blob/master/files/ZendGuardLoader-php-5.3-linux-glibc23-i386.tar.gz;
 					tar -zxvf ZendGuardLoader-php-5.3-linux-glibc23-i386.tar.gz;
 					mv ZendGuardLoader-php-5.3-linux-glibc23-i386 Zend_Guard_Loader;
 				fi;

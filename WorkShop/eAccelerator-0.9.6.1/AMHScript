@@ -20,7 +20,7 @@ function amh_module_install()
 		exit;
 	else
 		cd /usr/local/;
-		wget http://code.amysql.com/files/eaccelerator-0.9.6.1.zip;
+		wget --no-check-certificate https://github.com/Codebyme/AMH-Debian-Install/blob/master/files/eaccelerator-0.9.6.1.zip;
 		unzip eaccelerator-0.9.6.1.zip;
 		cd eaccelerator-0.9.6.1;
 		/usr/local/php/bin/phpize;
